@@ -894,3 +894,128 @@ footer a {
   width: 100%;
   height: 100%;
 }
+
+/* Simple, warm browser chrome */
+#proxy-screen:not(.screen-hidden) {
+  background: rgba(28, 18, 12, 0.38);
+  backdrop-filter: none;
+}
+
+.proxy-window {
+  background: #f4eee5;
+  border: 1px solid #654a32;
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.38);
+}
+
+.proxy-tabbar {
+  background: #3d291b;
+  border-bottom-color: #654a32;
+}
+
+.proxy-active-tab {
+  color: #fff5e8;
+  background: #684827;
+  border-color: #806449;
+  border-bottom-color: #684827;
+  border-radius: 7px 7px 0 0;
+  box-shadow: none;
+}
+
+.proxy-tab-mark {
+  box-shadow: none;
+}
+
+.proxy-toolbar {
+  background: #4a321f;
+  border-bottom-color: #765a3c;
+}
+
+.proxy-nav-button {
+  background: transparent;
+  border-color: rgba(255, 235, 211, 0.24);
+  border-radius: 7px;
+}
+
+.proxy-nav-button:hover {
+  background: rgba(255, 235, 211, 0.12);
+  transform: none;
+}
+
+.proxy-address-form {
+  background: #fffaf3;
+  border: 1px solid #b8a58f;
+  border-radius: 7px;
+  box-shadow: none;
+}
+
+.proxy-address-form:focus-within {
+  border-color: #c78a45;
+  box-shadow: 0 0 0 2px rgba(199, 138, 69, 0.16);
+}
+
+.proxy-address-form button {
+  color: #382516;
+  background: #e8a74a;
+  border: 1px solid #d79235;
+  border-radius: 6px;
+  box-shadow: none;
+  font-weight: 650;
+}
+
+.proxy-bookmarks {
+  background: #e9ddcf;
+  border-bottom-color: #d3c2ad;
+}
+
+.proxy-bookmark {
+  border-radius: 5px;
+  font-weight: 500;
+}
+
+.proxy-bookmark:hover {
+  background: #f8f1e8;
+  border-color: #d3c2ad;
+}
+
+.proxy-page-area {
+  background: #f4eee5;
+}
+
+.proxy-welcome {
+  color: #4b3827;
+  background: #f4eee5;
+}
+
+.proxy-welcome-icon {
+  width: auto;
+  height: auto;
+  margin-bottom: 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 30px;
+}
+
+.proxy-welcome-kicker {
+  color: #87623d;
+  letter-spacing: 0.12em;
+}
+
+.proxy-welcome h2 {
+  color: #3d2c1d;
+  font: 700 clamp(26px, 3vw, 38px)/1.2 system-ui, sans-serif;
+  text-shadow: none;
+}
+
+.proxy-welcome > p:last-child {
+  color: #6b5847;
+}
+
+#proxy-status {
+  background: #44301f;
+  border-color: #92724e;
+  border-radius: 6px;
+  box-shadow: none;
+}
