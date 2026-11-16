@@ -141,7 +141,7 @@ function makeGameCard(game, imageUrl) {
   copy.className = "game-copy";
   const category = document.createElement("span");
   category.className = "game-category";
-  category.textContent = game.category || "Arcade";
+  category.textContent = (game.category || "@rc@de").replace(/\bArcade\b/gi, "@rc@de");
   const name = document.createElement("strong");
   name.className = "game-name";
   name.textContent = game.name;
@@ -163,14 +163,14 @@ async function renderGames(games, total) {
   if (!grid) return;
 
   grid.replaceChildren();
-  if (count) count.textContent = total.toLocaleString() + (total === 1 ? " game" : " games");
+  if (count) count.textContent = total.toLocaleString() + (total === 1 ? " gam3" : " gam3s");
 
   if (!games.length) {
-    setGamesStatus("No games found. Try a different search.");
+    setGamesStatus("No gam3s found. Try a different search.");
     return;
   }
 
-  setGamesStatus("Loading game art…");
+  setGamesStatus("Loading gam3 art…");
   const imageUrls = await Promise.all(
     games.map((game) =>
       window.Lumin.getImageUrl(game.image_token).catch(() => "")
@@ -181,7 +181,7 @@ async function renderGames(games, total) {
     grid.appendChild(makeGameCard(game, imageUrls[index]));
   });
 
-  setGamesStatus(gamesAreRandom ? "A fresh set of games for you." : "");
+  setGamesStatus(gamesAreRandom ? "A fresh set of gam3s for you." : "");
 }
 
 function updateGamesPager() {
@@ -198,7 +198,7 @@ function updateGamesPager() {
 async function loadGames(page = 1) {
   gamesAreRandom = false;
   gamesPage = page;
-  setGamesStatus("Finding games…");
+  setGamesStatus("Finding gam3s…");
 
   const result = await window.Lumin.getGames({
     page: gamesPage,
@@ -228,7 +228,7 @@ async function initGames() {
     if (typeof window.Lumin === "undefined") {
       throw new Error("The Lumin library did not load. Check your internet connection and refresh.");
     }
-    setGamesStatus("Connecting to the game library…");
+    setGamesStatus("Connecting to the gam3 library…");
     await window.Lumin.init({ headless: true });
     gamesInitialized = true;
     await loadGames(1);
@@ -238,7 +238,7 @@ async function initGames() {
     await gamesInitPromise;
   } catch (error) {
     gamesInitPromise = null;
-    setGamesStatus("Could not load the game library: " + error.message);
+    setGamesStatus("Could not load the gam3 library: " + error.message);
     console.error("Could not initialize Lumin:", error);
   }
 }
@@ -296,7 +296,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("games")?.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-game-id]");
     if (!button) return;
-    const gameName = button.querySelector(".game-name")?.textContent || "game";
+    const gameName = button.querySelector(".game-name")?.textContent || "gam3";
     setGamesStatus("Launching " + gameName + "…");
     try {
       await window.Lumin.loadGame(button.dataset.gameId);
