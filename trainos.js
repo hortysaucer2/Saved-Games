@@ -1,19 +1,37 @@
+/* Scramjet 2.x starts when the user opens the proxy screen. */
 let scramjetController = null;
 let scramjetFrame = null;
+let proxyReady = null;
+let gamesInitPromise = null;
+let gamesInitialized = false;
+let gamesPage = 1;
+let gamesPageCount = 1;
+let gamesSearch = "";
+let gamesAreRandom = false;
+let searchTimer = null;
 
 async function initProxy() {
-  const registration = await navigator.serviceWorker.register("./sw.js");
+  if (!("serviceWorker" in navigator)) {
+    throw new Error("This browser does not support service workers.");
+  }
+
+  const registration = await navigator.serviceWorker.register("./sw.js", { scope: "./" });
   await navigator.serviceWorker.ready;
 
-  const { default: EpoxyClient } = await import(
-    "https://jsdelivr.net"
-  );
-  const transport = new EpoxyClient({ wisp: "wss://wisp.mercurywork.shop/" });
+  const serviceworker = registration.active || navigator.serviceWorker.controller;
+  if (!serviceworker) throw new Error("The Scramjet service worker did not activate.");
 
-  const { Controller } = $scramjetController;
-  scramjetController = new Controller({
-    serviceworker: registration.active || navigator.serviceWorker.controller,
-    transport: transport,
+  const { default: LibcurlTransport } = await import(
+    "https://esm.sh/@mercuryworkshop/libcurl-transport@2.0.5"
+  );
+
+  if (!window.$scramjetController?.Controller) {
+    throw new Error("Scramjet controller did not load. Check controller.api.js.");
+  }
+
+  scramjetController = new window.$scramjetController.Controller({
+    serviceworker,
+    transport: new LibcurlTransport({ wisp: "wss://wisp.mercurywork.shop/" }),
     config: {
       scramjetPath: "/scram/scramjet.js",
       wasmPath: "/scram/scramjet.wasm",
@@ -22,168 +40,291 @@ async function initProxy() {
   });
 
   await scramjetController.wait();
-
   const iframe = document.getElementById("proxy-frame");
+  if (!iframe) throw new Error("The proxy iframe is missing.");
   scramjetFrame = scramjetController.createFrame(iframe);
 }
 
-const ready = initProxy();
-
-document.addEventListener("DOMContentLoaded", function () {
-  const home = document.getElementById("home-screen");
-  const games = document.getElementById("games-screen");
-  const apps = document.getElementById("apps-screen");
-  const proxy = document.getElementById("proxy-screen");
-
-  document.getElementById("games-button").addEventListener("click", function () {
-    window.loadThen(function () {
-      home.classList.add("screen-hidden");
-      games.classList.remove("screen-hidden");
-    });
-  });
-
-  document.getElementById("apps-button").addEventListener("click", function () {
-    window.loadThen(function () {
-      home.classList.add("screen-hidden");
-      apps.classList.remove("screen-hidden");
-    });
-  });
-
-  document.getElementById("proxy-button").addEventListener("click", function () {
-    window.loadThen(function () {
-      home.classList.add("screen-hidden");
-      proxy.classList.remove("screen-hidden");
-      triggerProxyLaunch();
-    });
-  });
-
-  const backButtons = document.querySelectorAll(".back-button");
-
-  backButtons.forEach(function (button) {
-    button.addEventListener("click", function () {
-      games.classList.add("screen-hidden");
-      apps.classList.add("screen-hidden");
-      proxy.classList.add("screen-hidden");
-      home.classList.remove("screen-hidden");
-    });
-  });
-
-  async function triggerProxyLaunch() {
-    const proxyBtn = document.getElementById("proxy-button");
-    proxyBtn.disabled = true;
-    proxyBtn.textContent = "Starting Scramjet...";
-
-    try {
-      await ready;
-      proxyBtn.disabled = false;
-      proxyBtn.textContent = "Proxy";
-    } catch (err) {
-      console.error("Failed to initialize Scramjet:", err);
-      proxyBtn.disabled = false;
-      proxyBtn.textContent = "Proxy (Error)";
-    }
-  }
-
-  const proxyForm = document.getElementById("proxy-form");
-  if (proxyForm) {
-    proxyForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      await ready;
-
-      let url = document.getElementById("url-input").value.trim();
-      if (!url) return;
-
-      if (!url.startsWith("http://") && !url.startsWith("https://")) {
-        url = "https://" + url;
-      }
-
-      scramjetFrame.go(url);
-    });
-  }
-
-  if (typeof Lumin !== "undefined") {
-    Lumin.init({
-      container: "#games",
-      theme: "dark",
-    });
-  }
-});
-
-const loadingMessages = [
-  "im stuck in the basement help me",
-  "i like trains",
-  "Will she say yes?",
-  ".",
-  "How many of these do I have to make",
-  "I am a loading screen",
-  "can I stop writing these yet?",
-  "dododoodododododododododododododododododo",
-  "sghdfkjgdhfugydugkdjfhgdjfhgdjkfhgdfkjghdkhgkdjfghdfugudfgudfgyuidfhkjdhgkjdfiudig",
-  "last one?",
-];
-
-let loadingInterval = null;
-
-function ensureLoadingScreenExists() {
-  let overlay = document.getElementById("loading-screen");
-  if (!overlay) {
-    overlay = document.createElement("div");
-    overlay.id = "loading-screen";
-    const spinner = document.createElement("div");
-    spinner.className = "loading-spinner";
-    const txt = document.createElement("div");
-    txt.id = "loading-text";
-
-    overlay.appendChild(spinner);
-    overlay.appendChild(txt);
-    document.body.prepend(overlay);
-
-    overlay.style.cssText =
-      "position:fixed; top:0; left:0; width:100vw; height:100vh; background-color:rgba(18,18,18,0.98); color:#ffffff; display:none; flex-direction:column; justify-content:center; align-items:center; z-index:9999999; opacity:0; transition:opacity 0.3s ease-in-out; font-family:sans-serif;";
-    txt.style.cssText = "font-size:1.3rem; font-weight:bold;";
-
-    if (!document.getElementById("loading-spinner-keyframes")) {
-      const styleSheet = document.createElement("style");
-      styleSheet.id = "loading-spinner-keyframes";
-      styleSheet.innerText = `
-        .loading-spinner { width:60px; height:60px; border:5px solid #2a2a2a; border-top:5px solid #3498db; border-radius:50%; animation:loading-spin 1s linear infinite; margin-bottom:25px; }
-        @keyframes loading-spin { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
-      `;
-      document.head.appendChild(styleSheet);
-    }
-  }
-  return overlay;
+function setProxyStatus(message) {
+  const status = document.getElementById("proxy-status");
+  if (status) status.textContent = message;
 }
 
-window.loadThen = function (screenSwitchAction) {
-  const overlay = ensureLoadingScreenExists();
-  const txt = document.getElementById("loading-text");
+async function ensureProxyReady() {
+  if (!proxyReady) {
+    proxyReady = initProxy().catch((error) => {
+      proxyReady = null;
+      throw error;
+    });
+  }
+  await proxyReady;
+}
 
-  txt.textContent =
-    loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
+function showScreen(screenId) {
+  ["home-screen", "games-screen", "apps-screen", "proxy-screen"].forEach((id) => {
+    const screen = document.getElementById(id);
+    if (screen) screen.classList.toggle("screen-hidden", id !== screenId);
+  });
+}
 
-  overlay.style.display = "flex";
-  overlay.offsetHeight;
-  overlay.style.opacity = "1";
+function resolveBrowserAddress(value) {
+  const input = value.trim();
+  if (/^https?:\/\//i.test(input)) return input;
 
-  if (loadingInterval) clearInterval(loadingInterval);
-  loadingInterval = setInterval(() => {
-    txt.textContent =
-      loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
-  }, 5000);
+  const looksLikeHost = /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(input) || input.includes(".");
+  if (!looksLikeHost || /\s/.test(input)) {
+    return "https://www.google.com/search?q=" + encodeURIComponent(input);
+  }
+  return "https://" + input;
+}
 
-  setTimeout(() => {
-    if (typeof screenSwitchAction === "function") {
-      screenSwitchAction();
+async function navigateProxy(rawAddress) {
+  if (!rawAddress.trim()) return;
+
+  const address = resolveBrowserAddress(rawAddress);
+  const input = document.getElementById("url-input");
+  const pageArea = document.querySelector(".proxy-page-area");
+
+  try {
+    setProxyStatus("Opening page…");
+    await ensureProxyReady();
+    if (input) input.value = address;
+    pageArea?.classList.add("has-page");
+    scramjetFrame.go(address);
+    setProxyStatus("");
+  } catch (error) {
+    console.error("Could not load proxied site:", error);
+    setProxyStatus("Could not load the page: " + error.message);
+  }
+}
+
+function runProxyNavigation(action) {
+  if (!scramjetFrame) {
+    setProxyStatus("Enter a web address first.");
+    return;
+  }
+  try {
+    scramjetFrame[action]();
+  } catch (error) {
+    setProxyStatus("Browser action failed: " + error.message);
+  }
+}
+function setGamesStatus(message) {
+  const status = document.getElementById("games-status");
+  if (status) status.textContent = message;
+}
+
+function makeGameCard(game, imageUrl) {
+  const card = document.createElement("article");
+  card.className = "game-card";
+
+  const button = document.createElement("button");
+  button.className = "game-launch";
+  button.type = "button";
+  button.dataset.gameId = game.id;
+  button.setAttribute("aria-label", "Play " + game.name);
+
+  const art = document.createElement("div");
+  art.className = "game-art";
+  if (imageUrl) {
+    const image = document.createElement("img");
+    image.src = imageUrl;
+    image.alt = "";
+    image.loading = "lazy";
+    art.appendChild(image);
+  } else {
+    art.classList.add("game-art-empty");
+    art.textContent = "TRAIN ARCADE";
+  }
+
+  const copy = document.createElement("div");
+  copy.className = "game-copy";
+  const category = document.createElement("span");
+  category.className = "game-category";
+  category.textContent = game.category || "Arcade";
+  const name = document.createElement("strong");
+  name.className = "game-name";
+  name.textContent = game.name;
+
+  const play = document.createElement("span");
+  play.className = "game-play";
+  play.setAttribute("aria-hidden", "true");
+  play.textContent = "▶";
+
+  copy.append(category, name, play);
+  button.append(art, copy);
+  card.appendChild(button);
+  return card;
+}
+
+async function renderGames(games, total) {
+  const grid = document.getElementById("games");
+  const count = document.getElementById("games-count");
+  if (!grid) return;
+
+  grid.replaceChildren();
+  if (count) count.textContent = total.toLocaleString() + (total === 1 ? " game" : " games");
+
+  if (!games.length) {
+    setGamesStatus("No games found. Try a different search.");
+    return;
+  }
+
+  setGamesStatus("Loading game art…");
+  const imageUrls = await Promise.all(
+    games.map((game) =>
+      window.Lumin.getImageUrl(game.image_token).catch(() => "")
+    )
+  );
+
+  games.forEach((game, index) => {
+    grid.appendChild(makeGameCard(game, imageUrls[index]));
+  });
+
+  setGamesStatus(gamesAreRandom ? "A fresh set of games for you." : "");
+}
+
+function updateGamesPager() {
+  const pager = document.querySelector(".games-pagination");
+  const previous = document.getElementById("games-prev");
+  const next = document.getElementById("games-next");
+  const label = document.getElementById("games-page");
+  if (pager) pager.hidden = gamesAreRandom;
+  if (previous) previous.disabled = gamesPage <= 1;
+  if (next) next.disabled = gamesPage >= gamesPageCount;
+  if (label) label.textContent = "Page " + gamesPage + " of " + gamesPageCount;
+}
+
+async function loadGames(page = 1) {
+  gamesAreRandom = false;
+  gamesPage = page;
+  setGamesStatus("Finding games…");
+
+  const result = await window.Lumin.getGames({
+    page: gamesPage,
+    limit: 20,
+    q: gamesSearch,
+  });
+
+  gamesPageCount = Math.max(1, result.pages || 1);
+  updateGamesPager();
+  await renderGames(result.games || [], result.total || 0);
+}
+
+async function loadRandomGames() {
+  gamesAreRandom = true;
+  setGamesStatus("Picking a few favorites…");
+  updateGamesPager();
+
+  const result = await window.Lumin.getRandomGames(20);
+  await renderGames(result.games || [], (result.games || []).length);
+}
+
+async function initGames() {
+  if (gamesInitialized) return;
+  if (gamesInitPromise) return gamesInitPromise;
+
+  gamesInitPromise = (async () => {
+    if (typeof window.Lumin === "undefined") {
+      throw new Error("The Lumin library did not load. Check your internet connection and refresh.");
     }
+    setGamesStatus("Connecting to the game library…");
+    await window.Lumin.init({ headless: true });
+    gamesInitialized = true;
+    await loadGames(1);
+  })();
 
-    clearInterval(loadingInterval);
-    overlay.style.opacity = "0";
+  try {
+    await gamesInitPromise;
+  } catch (error) {
+    gamesInitPromise = null;
+    setGamesStatus("Could not load the game library: " + error.message);
+    console.error("Could not initialize Lumin:", error);
+  }
+}
 
-    setTimeout(() => {
-      if (overlay.style.opacity === "0") {
-        overlay.style.display = "none";
-      }
-    }, 300);
-  }, 5000);
-};
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("proxy-button")?.addEventListener("click", async () => {
+    showScreen("proxy-screen");
+    const button = document.getElementById("proxy-button");
+    if (button) button.disabled = true;
+    setProxyStatus("Starting Scramjet…");
+
+    try {
+      await ensureProxyReady();
+      setProxyStatus("Ready. Enter a website above.");
+    } catch (error) {
+      console.error("Failed to initialize Scramjet:", error);
+      setProxyStatus("Could not start Scramjet: " + error.message);
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
+
+  document.getElementById("games-button")?.addEventListener("click", () => {
+    showScreen("games-screen");
+    void initGames();
+  });
+
+  document.getElementById("apps-button")?.addEventListener("click", () => {
+    showScreen("apps-screen");
+  });
+
+  document.querySelectorAll(".back-button").forEach((button) => {
+    button.addEventListener("click", () => showScreen("home-screen"));
+  });
+
+  document.getElementById("game-search")?.addEventListener("input", (event) => {
+    gamesSearch = event.target.value.trim();
+    gamesAreRandom = false;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { if (gamesInitialized) void loadGames(1); }, 250);
+  });
+
+  document.getElementById("random-game")?.addEventListener("click", () => {
+    if (gamesInitialized) void loadRandomGames();
+  });
+
+  document.getElementById("games-prev")?.addEventListener("click", () => {
+    if (gamesPage > 1) void loadGames(gamesPage - 1);
+  });
+
+  document.getElementById("games-next")?.addEventListener("click", () => {
+    if (gamesPage < gamesPageCount) void loadGames(gamesPage + 1);
+  });
+
+  document.getElementById("games")?.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-game-id]");
+    if (!button) return;
+    const gameName = button.querySelector(".game-name")?.textContent || "game";
+    setGamesStatus("Launching " + gameName + "…");
+    try {
+      await window.Lumin.loadGame(button.dataset.gameId);
+      setGamesStatus("");
+    } catch (error) {
+      console.error("Could not launch game:", error);
+      setGamesStatus("Could not launch " + gameName + ": " + error.message);
+    }
+  });
+
+  document.getElementById("proxy-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const input = document.getElementById("url-input");
+    if (input) void navigateProxy(input.value);
+  });
+
+  document.getElementById("proxy-nav-back")?.addEventListener("click", () => runProxyNavigation("back"));
+  document.getElementById("proxy-nav-forward")?.addEventListener("click", () => runProxyNavigation("forward"));
+  document.getElementById("proxy-nav-reload")?.addEventListener("click", () => runProxyNavigation("reload"));
+
+  document.querySelectorAll(".proxy-bookmark[data-open-url]").forEach((bookmark) => {
+    bookmark.addEventListener("click", () => {
+      const input = document.getElementById("url-input");
+      if (input) input.value = bookmark.dataset.openUrl;
+      void navigateProxy(bookmark.dataset.openUrl);
+    });
+  });
+});
+
+
+

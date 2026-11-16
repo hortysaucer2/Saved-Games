@@ -1,59 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Free Online Tutoring</title>
-    <script src="sw.js"></script>
-    <script src="bareworker.js"></script>
-    <script src="/scram/scramjet.js"></script>
-<script src="/scram/controller.api.js"></script>
-    <link rel="stylesheet" href="trainos.css">
-    <link rel="icon" type="image/png" href="/siteicon.png">
-    <script src="trainos.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trains Arcade</title>
+  <link rel="stylesheet" href="./trainos.css">
+  <link rel="icon" type="image/png" href="./siteicon.png">
+  <!-- Scramjet 2.x page bundles: load core first, then its controller. -->
+  <script src="./scram/scramjet.js"></script>
+  <script src="./scram/controller.api.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/luminsdk/script@latest/lumin.min.js" defer></script>
+  <script src="./trainos.js" defer></script>
+  <style>
+  body {
+    height: 100vh;
+    height: 100dvh;
+    width: 100vw;
+    margin: 0;
+    overflow: hidden;
+    background: url('./background(mainpage).png') center / cover no-repeat;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: sans-serif;
+  }
+  .Title {
+      color: black;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 30px;
+      transition: transform 1s ease;
+    }
+    .Title:hover, .arcade-button:hover { transform: scale(1.08); }
+    .arcade-button {
+      color: black;
+      padding: 10px 30px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(4px);
+      transition: transform 1s ease;
+      cursor: pointer;
+    }
+    .screen-hidden { display: none; }
+    #proxy-screen { width: min(95vw, 1100px); }
+    #proxy-form { display: flex; gap: 8px; margin: 16px 0; }
+    #url-input { flex: 1; min-width: 0; padding: 10px; }
+    #proxy-frame { width: 100%; height: 70vh; border: 0; background: white; }
+  </style>
 </head>
 <body>
-<div id="loading-screen">
-  <div class="loading-spinner"></div>
-  <div id="loading-text">Initializing...</div>
-  <script src="https://cdn.jsdelivr.net/gh/luminsdk/script@latest/lumin.min.js"></script>
-</div>
-
-    <section id="home-screen" class="screen">
-
-         <header>
-             <h1 class="top-title">TrainArcade</h1>
-         </header>
-         <main>
-            <h2>!Welcome to TrainArcade!</h2>
-            <div id="mainscreen-buttons">
-                <button id="games-button">Games</button>
-                <button id="apps-button">Apps</button>
-                <button id="proxy-button">Proxy</button>
-            </div>
-         </main>
-         <footer>
-            <a>This is a project by a small group of developers, please don't expect much and don't steal our work. </a>
-         </footer>
-    </section>
-
-    <section id="games-screen" class="screen-hidden">
-         <button class="back-button">← Back to Home</button>
-         <b>!Games!</b>
-         <div id="games"></div>
-    </section>
-
-    <section id="apps-screen" class="screen-hidden">
-         <b>!Apps!</b>
-         <br><br>
-         <button class="back-button">← Back to Home</button>
-    </section>
-
-    <section id="proxy-screen" class="screen-hidden">
-         <b>!Proxy!</b>
-         <br><br>
-         <button class="back-button">← Back to Home</button>
-    </section>
+  <main id="home-screen">
+    <h1 class="Title">TRAINS ARCADE</h1>
+    <div>
+      <button id="proxy-button" class="arcade-button" type="button">Proxy</button>
+      <button id="games-button" class="arcade-button" type="button">Games</button>
+      <button id="apps-button" class="arcade-button" type="button">Apps</button>
+    </div>
+  </main>
+  <section id="games-screen" class="screen-hidden">
+    <button class="back-button arcade-button" type="button">Back</button>
+    <div class="games-shell">
+      <header class="games-header">
+        <span class="games-kicker">TRAIN ARCADE / GAME LIBRARY</span>
+        <h2>Pick your next game</h2>
+        <p>Browse the collection and jump straight in.</p>
+      </header>
+      <div class="games-toolbar">
+        <label class="games-search">
+          <span aria-hidden="true">⌕</span>
+          <input id="game-search" type="search" placeholder="Search games..." autocomplete="off">
+        </label>
+        <button id="random-game" class="games-action" type="button">Surprise me</button>
+      </div>
+      <div class="games-meta">
+        <p id="games-status" role="status" aria-live="polite">Loading the game library…</p>
+        <span id="games-count"></span>
+      </div>
+      <div id="games" class="game-grid" aria-live="polite"></div>
+      <nav class="games-pagination" aria-label="Game pages">
+        <button id="games-prev" class="games-page-button" type="button">← Previous</button>
+        <span id="games-page">Page 1</span>
+        <button id="games-next" class="games-page-button" type="button">Next →</button>
+      </nav>
+    </div>
+  </section>
+  <section id="apps-screen" class="screen-hidden">
+    <button class="back-button arcade-button" type="button">Back</button>
+    <b>Apps</b>
+    <p class="section-message">No apps have been added yet.</p>
+  </section>
+  <section id="proxy-screen" class="screen-hidden">
+    <div class="proxy-window">
+      <div class="proxy-tabbar">
+        <div class="proxy-active-tab">
+          <span class="proxy-tab-icon" aria-hidden="true">🚂</span>
+          <span>TrainArcade</span>
+          <span class="proxy-tab-mark" aria-hidden="true"></span>
+        </div>
+        <span class="proxy-new-tab" aria-hidden="true">+</span>
+        <button class="back-button proxy-exit" type="button" aria-label="Back to TrainArcade" title="Back to TrainArcade">×</button>
+      </div>
+      <div class="proxy-toolbar">
+        <div class="proxy-nav-controls">
+          <button id="proxy-nav-back" class="proxy-nav-button" type="button" aria-label="Back" title="Back">←</button>
+          <button id="proxy-nav-forward" class="proxy-nav-button" type="button" aria-label="Forward" title="Forward">→</button>
+          <button id="proxy-nav-reload" class="proxy-nav-button" type="button" aria-label="Reload" title="Reload">↻</button>
+        </div>
+        <form id="proxy-form" class="proxy-address-form">
+          <span class="proxy-secure-icon" aria-hidden="true">●</span>
+          <input id="url-input" type="text" placeholder="Search Google or enter a web address" autocomplete="off" spellcheck="false">
+          <button id="proxy-go" type="submit">Go</button>
+        </form>
+        <span class="proxy-nav-button proxy-menu-button" aria-hidden="true">⋮</span>
+      </div>
+      <nav class="proxy-bookmarks" aria-label="Bookmarks">
+        <span class="bookmark-folder" aria-hidden="true">▣</span>
+        <button class="proxy-bookmark" type="button" data-open-url="https://www.google.com">Google</button>
+        <button class="proxy-bookmark" type="button" data-open-url="https://www.youtube.com">YouTube</button>
+        <button class="proxy-bookmark" type="button" data-open-url="https://www.wikipedia.org">Wikipedia</button>
+      </nav>
+      <div class="proxy-page-area">
+        <div id="proxy-welcome" class="proxy-welcome">
+          <div class="proxy-welcome-icon" aria-hidden="true">🚂</div>
+          <p class="proxy-welcome-kicker">TRAIN ARCADE BROWSER</p>
+          <h2>Where to next?</h2>
+          <p>Enter a web address or search above to get started.</p>
+        </div>
+        <p id="proxy-status" role="status" aria-live="polite"></p>
+        <iframe id="proxy-frame" title="Browser page" allow="autoplay; fullscreen; gamepad; clipboard-read; clipboard-write"></iframe>
+      </div>
+    </div>
+  </section>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
